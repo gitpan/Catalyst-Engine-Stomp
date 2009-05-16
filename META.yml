@@ -3,7 +3,7 @@ abstract: 'write message handling apps with Catalyst.'
 author: ~
 distribution_type: module
 generated_by: 'Module::Install version 0.77'
-license: unknown
+license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
@@ -12,6 +12,8 @@ no_index:
   directory:
     - inc
     - t
+  package:
+    - StompTestApp
 requires:
   Catalyst::Action::REST: 0
   Catalyst::Engine::Embeddable: 0.0.1
@@ -21,4 +23,6 @@ requires:
   Net::Stomp: 0.34
   YAML::XS: 0.32
   namespace::autoclean: 0.05
-version: 0.01
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.02
