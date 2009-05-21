@@ -1,8 +1,13 @@
 ---
 abstract: 'write message handling apps with Catalyst.'
 author: ~
+build_requires:
+  Alien::ActiveMQ: 0.00003
+  ExtUtils::MakeMaker: 6.42
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.77'
+generated_by: 'Module::Install version 0.88'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -14,10 +19,11 @@ no_index:
     - t
   package:
     - StompTestApp
+    - StompTestApp::Controller::TestController
 requires:
   Catalyst::Action::REST: 0
   Catalyst::Engine::Embeddable: 0.0.1
-  Catalyst::Runtime: 5.80003
+  Catalyst::Runtime: 5.80004
   Moose: 0
   MooseX::Workers: 0.05
   Net::Stomp: 0.34
@@ -25,4 +31,4 @@ requires:
   namespace::autoclean: 0.05
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.02
+version: 0.03
