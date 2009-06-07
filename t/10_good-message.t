@@ -1,3 +1,5 @@
+use strict;
+use warnings;
 use Test::More;
 
 # Tests which expect a STOMP server like ActiveMQ to exist on
@@ -9,10 +11,12 @@ use YAML::XS qw/ Dump Load /;
 use Data::Dumper;
 
 use FindBin;
-use lib "$FindBin::Bin";
-require 'server.pl';
+use lib "$FindBin::Bin/lib";
+use TestServer;
 
-plan tests => 12;
+my $stomp = start_server();
+
+plan tests => 11;
 
 my $frame = $stomp->connect();
 ok($frame, 'connect to MQ server ok');
@@ -23,14 +27,13 @@ ok(length $reply_to > 2, 'valid-looking reply_to queue');
 
 ok($stomp->subscribe( { destination => '/temp-queue/reply' } ), 'subscribe to temp queue');
 
-# Test what happens when the action crashes
 my $message = {
 	       payload => { foo => 1, bar => 2 },
 	       reply_to => $reply_to,
-	       type => 'badaction',
+	       type => 'testaction',
 	      };
 my $text = Dump($message);
-ok($text, 'compose message for badaction');
+ok($text, 'compose message');
 
 $stomp->send( { destination => '/queue/testcontroller', body => $text } );
 
@@ -41,8 +44,7 @@ ok($reply_frame->body, 'has a body');
 
 my $response = Load($reply_frame->body);
 ok($response, 'YAML response ok');
-ok($response->{status} eq 'ERROR', 'is an error');
-ok($response->{error} =~ /oh noes/);
+ok($response->{type} eq 'testaction_response', 'correct type');
 
 ok($stomp->disconnect, 'disconnected');
 

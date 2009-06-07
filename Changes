@@ -1,14 +1,20 @@
 Revision history for Perl extension Catalyst::Engine::Stomp.
 
-0.01  Fri May 15 21:39:30 2009
-	Initial CPAN Release
-
-0.02  Sun May 17 00:00:00 2009
-	Rename TestApp 
-
-0.03  Thu May 21 22:57:00 2009
-	Depend on a less hateful Alien::ActiveMQ
+0.05  Sun Jun 07 01:38:46 2009
+    - Cleanups, tests and documentation additions.
+    - Add namespace:autoclean
+    - Handle 'no type' messages better, attempt to reply saying so.
 
 0.04  Mon Jun 01 09:21:00 2009
-        Remove dependency on Catalyst::Action::REST, use
-        Data::Serializer directly instead.  
+    - Remove dependency on Catalyst::Action::REST, use
+      Data::Serializer directly instead.
+
+0.03  Thu May 21 22:57:00 2009
+	- Add Alien::ActiveMQ for real testing.
+
+0.02  Sun May 17 00:00:00 2009
+	- Rename TestApp
+
+0.01  Fri May 15 21:39:30 2009
+	- Initial CPAN Release
+

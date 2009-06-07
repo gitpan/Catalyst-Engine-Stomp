@@ -1,16 +1,24 @@
+use strict;
+use warnings;
 use Test::More;
 
 # Tests which expect a STOMP server like ActiveMQ to exist on
 # localhost:61613, which is what you get if you just get the ActiveMQ
 # distro and run its out-of-the-box config.
 
-use Net::Stomp;
-use YAML::XS qw/ Dump Load /;
-use Data::Dumper;
+eval {
+	use JSON;
+};
+if ($@) {
+	plan 'skip_all' => 'JSON not installed, skipping JSON-format test';
+    exit;
+}
 
 use FindBin;
-use lib "$FindBin::Bin";
-require 'server.pl';
+use lib "$FindBin::Bin/lib";
+use TestServer;
+
+my $stomp = start_server();
 
 plan tests => 11;
 
@@ -28,18 +36,19 @@ my $message = {
 	       reply_to => $reply_to,
 	       type => 'testaction',
 	      };
-my $text = Dump($message);
+my $text = to_json($message);
 ok($text, 'compose message');
 
-$stomp->send( { destination => '/queue/testcontroller', body => $text } );
+$stomp->send( { destination => '/queue/testjsoncontroller', body => $text } );
 
 my $reply_frame = $stomp->receive_frame();
 ok($reply_frame, 'got a reply');
 ok($reply_frame->headers->{destination} eq "/remote-temp-queue/$reply_to", 'came to correct temp queue');
 ok($reply_frame->body, 'has a body');
 
-my $response = Load($reply_frame->body);
-ok($response, 'YAML response ok');
+my $response = from_json($reply_frame->body);
+
+ok($response, 'JSON response ok');
 ok($response->{type} eq 'testaction_response', 'correct type');
 
 ok($stomp->disconnect, 'disconnected');
