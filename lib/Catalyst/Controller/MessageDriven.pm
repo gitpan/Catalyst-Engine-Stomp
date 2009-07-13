@@ -1,6 +1,8 @@
 package Catalyst::Controller::MessageDriven;
 use Moose;
 use Data::Serializer;
+use Moose::Util::TypeConstraints;
+use MooseX::Types::Moose qw/Str/;
 use namespace::autoclean;
 
 BEGIN { extends 'Catalyst::Controller' }
@@ -47,15 +49,22 @@ Serializes the response from C<< $c->stash->{response} >>
 
 =cut
 
-__PACKAGE__->config( serializer => 'YAML' );
+class_type 'Data::Serializer';
+my $serializer_t = subtype 'Data::Serializer', where { 1 };
+coerce $serializer_t, from 'Str',
+    via { Data::Serializer->new( serializer => $_ ) };
+
+has serializer => (
+    isa => $serializer_t, is => 'ro', required => 1,
+    default => 'YAML', coerce => 1,
+);
 
 sub begin : Private {
     my ($self, $c) = @_;
 
     # Deserialize the request message
         my $message;
-    my $serializer = $self->config->{serializer};
-    my $s = Data::Serializer->new( serializer => $serializer );
+    my $s = $self->serializer;
     eval {
         my $body = $c->request->body;
         open my $IN, "$body" or die "can't open temp file $body";
@@ -80,14 +89,14 @@ sub end : Private {
     my $output;
 
     # Load a serializer
-    my $serializer = $self->config->{serializer};
-    my $s = Data::Serializer->new( serializer => $serializer );
+    my $s = $self->serializer;
 
     # Custom error handler - steal errors from catalyst and dump them into
     # the stash, to get them serialized out as the reply.
      if (scalar @{$c->error}) {
-         my $error = join "\n", @{$c->error};
-         $c->stash->{response} = { status => 'ERROR', error => $error };
+        $c->log->error($_) for @{$c->error}; # Log errors in Catalyst
+        my $error = join "\n", @{$c->error};
+        $c->stash->{response} = { status => 'ERROR', error => $error };
         $output = $s->serialize( $c->stash->{response} );
         $c->clear_errors;
         $c->response->status(400);

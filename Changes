@@ -1,5 +1,15 @@
 Revision history for Perl extension Catalyst::Engine::Stomp.
 
+0.06  Mon Jul 13 22:22:22 2009
+    - Make the test-app harness available under CatalystX::
+    - Clean up use of deprecated dispatcher methods.
+    - Add an error message in the Catalyst log when we
+      receive an unserializeable message.
+    - Fix the test application to always run with the
+      correct library paths.
+    - Fix bug causing alternate serializers to not be found
+      when using configuration from a config file.
+
 0.05  Sun Jun 07 01:38:46 2009
     - Cleanups, tests and documentation additions.
     - Add namespace:autoclean
