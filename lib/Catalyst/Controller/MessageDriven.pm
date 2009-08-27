@@ -47,6 +47,25 @@ Dispatches to method named by the key C<< $c->stash->{request}->{type} >>
 
 Serializes the response from C<< $c->stash->{response} >>
 
+=head1 CONFIGURATION
+
+In the configuration file add the following to set the value for a parameter
+
+  <MessageDriven>
+    type_key foo
+  </MessageDriven>
+
+=head2 type_key
+
+The hash key the module will try to pull out the received message to call
+within the controller. This defaults to 'type'.
+
+=head2 serializer
+
+The serializer used to serialiser/deserialise. See Data::Serializer to see
+what is available. Defaults to YAML. JSON is anotther that is available.
+
+
 =cut
 
 class_type 'Data::Serializer';
@@ -59,11 +78,17 @@ has serializer => (
     default => 'YAML', coerce => 1,
 );
 
+has type_key => (
+    is => 'ro', required =>1,
+    default => 'type',
+);
+
+
 sub begin : Private {
     my ($self, $c) = @_;
 
     # Deserialize the request message
-        my $message;
+    my $message;
     my $s = $self->serializer;
     eval {
         my $body = $c->request->body;
@@ -121,7 +146,7 @@ sub default : Private {
 
     # Forward the request to the appropriate action, based on the
     # message type.
-    my $action = $c->stash->{request}->{type};
+    my $action = $c->stash->{request}->{ $self->type_key };
     if (defined $action) {
         $c->forward($action, [$c->stash->{request}]);
     }
@@ -131,4 +156,18 @@ sub default : Private {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 AUTHOR AND CONTRIBUTORS
+
+See information in L<Catalyst::Engine::Stomp>
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright (C) 2009 Venda Ltd
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
 

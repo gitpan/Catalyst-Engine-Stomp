@@ -3,14 +3,15 @@ use Moose;
 use List::MoreUtils qw/ uniq /;
 use HTTP::Request;
 use Net::Stomp;
+use MooseX::Types::Moose qw/Str Int HashRef/;
 use namespace::autoclean;
 
 extends 'Catalyst::Engine::Embeddable';
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 has connection => (is => 'rw', isa => 'Net::Stomp');
-has conn_desc => (is => 'rw', isa => 'Str');
+has conn_desc => (is => 'rw', isa => Str);
 
 =head1 NAME
 
@@ -25,11 +26,15 @@ Catalyst::Engine::Stomp - write message handling apps with Catalyst.
     require Catalyst::Engine::Stomp;
   }
 
-  MyApp->config->{Engine::Stomp} =
-   {
-     hostname => '127.0.0.1',
-     port     => 61613,
-   };
+  MyApp->config(
+     'Engine::Stomp' = {
+       hostname         => '127.0.0.1',
+       port             => 61613,
+       subscribe_header => {
+         transformation       => 'jms-to-json',
+       }
+    },
+  );
   MyApp->run();
 
   # In a controller, or controller base class:
@@ -77,6 +82,10 @@ sub run {
 
         # connect up
         my %template = %{$app->config->{'Engine::Stomp'}};
+        my $subscribe_headers = $template{subscribe_headers} || {};
+        die("subscribe_headers config for Engine::Stomp must be a hashref!\n")
+            if (ref($subscribe_headers) ne 'HASH');
+
         $self->connection(Net::Stomp->new(\%template));
         $self->connection->connect();
         $self->conn_desc($template{hostname}.':'.$template{port});
@@ -85,9 +94,10 @@ sub run {
         foreach my $queue (@queues) {
                 my $queue_name = "/queue/$queue";
                 $self->connection->subscribe({
-                                              destination => $queue_name,
-                                              ack         => 'client'
-                                             });
+                    %$subscribe_headers,
+                    destination => $queue_name,
+                    ack         => 'client',
+                });
         }
 
         # enter loop...
@@ -198,4 +208,39 @@ sub handle_stomp_error {
 }
 
 __PACKAGE__->meta->make_immutable;
+
+=head1 CONFIGURATION
+
+=head2 subscribe_header
+
+Add additional header key/value pairs to the subscribe message sent to the
+message broker.
+
+=cut
+
+=head1 DEVELOPMENT
+
+The source to Catalyst::Engine::Stomp is in github:
+
+  http://github.com/chrisa/catalyst-engine-stomp
+
+=head1 AUTHOR
+
+Chris Andrews C<< <chris@nodnol.org> >>
+
+=head1 CONTRIBUTORS
+
+Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>
+
+Jason Tang
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright (C) 2009 Venda Ltd
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.8 or,
+at your option, any later version of Perl 5 you may have available.
+
+=cut
 
