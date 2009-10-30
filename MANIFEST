@@ -28,6 +28,8 @@ t/10_good-message.t
 t/11_bad-action.t
 t/12_json-message.t
 t/13_message-driven-request.t
+t/14_message-catch-error.t
+t/15_utf8.pl
 t/lib/StompTestApp.pm
 t/lib/StompTestApp/Controller/TestController.pm
 t/lib/StompTestApp/Controller/TestJsonController.pm
