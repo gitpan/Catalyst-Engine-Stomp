@@ -9,7 +9,7 @@ use Encode;
 
 extends 'Catalyst::Engine::Embeddable';
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 has connection => (is => 'rw', isa => 'Net::Stomp');
 has conn_desc => (is => 'rw', isa => Str);
@@ -251,6 +251,8 @@ Chris Andrews C<< <chris@nodnol.org> >>
 Tomas Doran (t0m) C<< <bobtfish@bobtfish.net> >>
 
 Jason Tang
+
+Paul Mooney
 
 =head1 LICENCE AND COPYRIGHT
 
