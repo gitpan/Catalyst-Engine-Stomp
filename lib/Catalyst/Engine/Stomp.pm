@@ -9,7 +9,7 @@ use Encode;
 
 extends 'Catalyst::Engine::Embeddable';
 
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 has connection => (is => 'rw', isa => 'Net::Stomp');
 has conn_desc => (is => 'rw', isa => Str);
@@ -77,14 +77,35 @@ If you do want this behaviour, set 'utf8' to '1' in your config.
 
 =head1 METHODS
 
+=head2 _see_ya
+
+Set to run when signal USR1 is received. Simply sets the stop flag.
+
+=cut
+
+my $stop = 0;
+
+sub _see_ya {
+    $stop = 1;
+    delete $SIG{'USR1'};
+}
+
+=pod
+
 =head2 run
 
 App entry point. Starts a loop listening for messages.
+
+If the stop flag is set (see _see_ya above) then no more requests are processed.
+Keep in mind this is a blocking server and it will wait for a STOMP message forever.
+Only after handling a request does it check the flag.
 
 =cut
 
 sub run {
         my ($self, $app, $oneshot) = @_;
+
+        $SIG{'USR1'} = \&_see_ya;
 
         die 'No Engine::Stomp configuration found'
              unless ref $app->config->{'Engine::Stomp'} eq 'HASH';
@@ -112,13 +133,17 @@ sub run {
                 });
         }
 
+	# Since we might block for some time, lets flush the log messages
+        $app->log->_flush() if $app->log->can('_flush');
+
         # enter loop...
         while (1) {
-                my $frame = $self->connection->receive_frame();
+                my $frame = $self->connection->receive_frame(); # block
                 $self->handle_stomp_frame($app, $frame);
+
                 last if $ENV{ENGINE_ONESHOT};
+                last if $stop;
         }
-        exit 0;
 }
 
 =head2 prepare_request
@@ -137,7 +162,7 @@ sub prepare_request {
 
 =head2 finalize_headers
 
-Overridden to dump out any errors encountered, since you won't get a
+Overridden to dump out any errors encountered, since you won't get a #'
 "debugging" message as for HTTP.
 
 =cut
