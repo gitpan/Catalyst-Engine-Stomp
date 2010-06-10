@@ -9,7 +9,7 @@ use Encode;
 
 extends 'Catalyst::Engine::Embeddable';
 
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 has connection => (is => 'rw', isa => 'Net::Stomp');
 has conn_desc => (is => 'rw', isa => Str);
@@ -28,9 +28,17 @@ Catalyst::Engine::Stomp - write message handling apps with Catalyst.
   }
 
   MyApp->config(
-     'Engine::Stomp' = {
-       hostname         => '127.0.0.1',
-       port             => 61613,
+    Engine::Stomp' = {
+       tries_per_server => 3,
+      'servers' => [
+       {
+         'hostname' => 'localhost',
+         'port' => '61613'
+       },
+       {
+         'hostname' => 'stomp.yourmachine.com',
+         'port' => '61613'
+       },
        utf8             => 1,
        subscribe_header => {
          transformation       => 'jms-to-json',
@@ -65,6 +73,17 @@ provided, Catalyst::Controller::MessageDriven, which implements
 YAML-serialized messages, mapping a top-level YAML "type" key to
 the action.
 
+=head1 FAILOVER
+
+You can specify one or more servers in a list for the apps config.
+This enables fail over if an error occurs, like the broker or network
+connection disappears.
+
+It will try to use a server a set number of times, as determined by
+tries_per_server in the config before failing on to the next server
+in the list. It cycle through each server in turn, going back to the
+start of the list if need be.
+
 =head1 UTF-8
 
 By default STOMP messages are assumed to be in UTF-8. This module can
@@ -90,7 +109,6 @@ sub _see_ya {
     delete $SIG{'USR1'};
 }
 
-=pod
 
 =head2 run
 
@@ -103,47 +121,84 @@ Only after handling a request does it check the flag.
 =cut
 
 sub run {
-        my ($self, $app, $oneshot) = @_;
+    my ($self, $app, $oneshot) = @_;
 
-        $SIG{'USR1'} = \&_see_ya;
+    $SIG{'USR1'} = \&_see_ya;
 
-        die 'No Engine::Stomp configuration found'
-             unless ref $app->config->{'Engine::Stomp'} eq 'HASH';
+    die 'No Engine::Stomp configuration found'
+        unless ref $app->config->{'Engine::Stomp'} eq 'HASH';
 
-        my @queues = grep { length $_ }
-                     map  { $app->controller($_)->action_namespace } $app->controllers;
+    my @queues = grep { length $_ }
+                 map  { $app->controller($_)->action_namespace } $app->controllers;
 
-        # connect up
-        my %template = %{$app->config->{'Engine::Stomp'}};
-        my $subscribe_headers = $template{subscribe_headers} || {};
-        die("subscribe_headers config for Engine::Stomp must be a hashref!\n")
-            if (ref($subscribe_headers) ne 'HASH');
+    # connect up
+    my $config = $app->config->{'Engine::Stomp'};
+    my $index  = 0;
 
-        $self->connection(Net::Stomp->new(\%template));
-        $self->connection->connect();
-        $self->conn_desc($template{hostname}.':'.$template{port});
+    QUITLOOP:
+    while (1) {
+        # Go to next server in list
+        my %template = %{ $config->{servers}->[$index] };
+        $config->{hostname} = $template{hostname};
+        $config->{port}     = $template{port};
 
-        # subscribe, with client ack.
-        foreach my $queue (@queues) {
-                my $queue_name = "/queue/$queue";
-                $self->connection->subscribe({
-                    %$subscribe_headers,
-                    destination => $queue_name,
-                    ack         => 'client',
-                });
+        ++$index;
+
+        if ($index >= (scalar( @{$config->{servers}} ))) {
+            $index = 0; # go back to first server in list
         }
 
-	# Since we might block for some time, lets flush the log messages
-        $app->log->_flush() if $app->log->can('_flush');
+        my $tries = 0;
 
-        # enter loop...
-        while (1) {
-                my $frame = $self->connection->receive_frame(); # block
-                $self->handle_stomp_frame($app, $frame);
+        while ($tries < $config->{tries_per_server}) {
+            ++$tries;
+    
+            eval {
+                my $subscribe_headers = $template{subscribe_headers} || {};
+                die("subscribe_headers config for Engine::Stomp must be a hashref!\n")
+                    if (ref($subscribe_headers) ne 'HASH');
 
-                last if $ENV{ENGINE_ONESHOT};
-                last if $stop;
+                $app->log->info("Connecting to STOMP Q at " . $template{hostname}.':'.$template{port});
+
+                $self->connection(Net::Stomp->new(\%template));
+                $self->connection->connect();
+                $self->conn_desc($template{hostname}.':'.$template{port});
+
+                # subscribe, with client ack.
+                foreach my $queue (@queues) {
+                    my $queue_name = "/queue/$queue";
+                    $self->connection->subscribe({
+                        %$subscribe_headers,
+                        destination => $queue_name,
+                        ack         => 'client',
+                    });
+                }
+
+                # Since we might block for some time, lets flush the log messages
+                $app->log->_flush() if $app->log->can('_flush');
+
+                # enter loop...
+                while (1) {
+                    my $frame = $self->connection->receive_frame(); # block
+                    $self->handle_stomp_frame($app, $frame);
+            
+                    if ( $ENV{ENGINE_ONESHOT} || $stop ){
+                        # Perl does not like 'last QUITLOOP' inside an eval, hence we die and do it
+                        die "QUITLOOP\n";
+                    }
+                }
+            };
+
+            if ($@) {
+                if ($@ eq "QUITLOOP\n") {
+                    last QUITLOOP;
+                }
+                else {
+                    $app->log->error(" Problem dealing with STOMP : $@");
+                }
+            }
         }
+    }
 }
 
 =head2 prepare_request
@@ -265,7 +320,7 @@ message broker.
 
 The source to Catalyst::Engine::Stomp is in github:
 
-  http://github.com/chrisa/catalyst-engine-stomp
+  http://github.com/pmooney/catalyst-engine-stomp
 
 =head1 AUTHOR
 
