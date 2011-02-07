@@ -6,7 +6,7 @@ use Test::More;
 
 Tests which expect a STOMP server like ActiveMQ to exist on
 localhost:61613, which is what you get if you just get the ActiveMQ
-distro and run its out-of-the-box config.
+distro and change its config.
 
 If the Load() function in YAML::XS is given a byte that can be thought
 of as the first of a multibyte character (UTF-8) and it isn't, it can
@@ -85,4 +85,5 @@ ok($new_string eq $text_string,
    "utf8 for text_string : " . Encode::is_utf8($text_string) . "\n"  );
 
 
-ok($stomp->disconnect, 'disconnected');
+$stomp->disconnect;
+ok(!$stomp->socket->connected, 'disconnected');

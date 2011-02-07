@@ -29,11 +29,13 @@ t/11_bad-action.t
 t/12_json-message.t
 t/13_message-driven-request.t
 t/14_message-catch-error.t
-t/15_utf8.pl
+t/15_utf8.t
+t/16_old_config.t
 t/lib/StompTestApp.pm
 t/lib/StompTestApp/Controller/TestController.pm
 t/lib/StompTestApp/Controller/TestJsonController.pm
 t/lib/StompTestApp/stomptestapp.yml
+t/lib/StompTestApp/stomptestapp_old.yml
 t/lib/TestServer.pm
 t/script/stomptestapp_stomp.pl
 t/script/stomptestapp_stomp_workers.pl

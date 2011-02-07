@@ -4,7 +4,7 @@ use Test::More;
 
 # Tests which expect a STOMP server like ActiveMQ to exist on
 # localhost:61613, which is what you get if you just get the ActiveMQ
-# distro and run its out-of-the-box config.
+# distro and changes its config.
 
 use Net::Stomp;
 use YAML::XS qw/ Dump Load /;
@@ -46,5 +46,6 @@ my $response = Load($reply_frame->body);
 ok($response, 'YAML response ok');
 ok($response->{type} eq 'testaction_response', 'correct type');
 
-ok($stomp->disconnect, 'disconnected');
+$stomp->disconnect;
+ok(!$stomp->socket->connected, 'disconnected');
 

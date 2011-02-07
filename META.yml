@@ -9,7 +9,7 @@ build_requires:
 configure_requires:
   ExtUtils::MakeMaker: 6.42
 distribution_type: module
-generated_by: 'Module::Install version 0.91'
+generated_by: 'Module::Install version 1.00'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -27,9 +27,10 @@ requires:
   MooseX::Types: 0
   MooseX::Workers: 0.05
   Net::Stomp: 0.34
+  YAML: 0
   YAML::XS: 0.32
   namespace::autoclean: 0.05
 resources:
   license: http://dev.perl.org/licenses/
   repository: git://github.com/chrisa/catalyst-engine-stomp.git
-version: 0.14
+version: 0.15
